@@ -1,11 +1,13 @@
 #install.packages("DataCombine")
 #install.packages("vegan")
 #install.packages("gtools")
+#install.packages("fitdistrplus")
 library(DataCombine)
 require(vegan)
 library(gtools)
 require(nlme)
 require(car)
+require(fitdistrplus)
 #load the data file witb abundances of aquatic insects from Breitenbach stream, Hesse
 ept1= read.csv("ept_69_2006.csv",sep=";")
 #repleace NA  in empty cells with 0
@@ -136,6 +138,22 @@ ml<-merge(sp,ept2m, by = "variable", all.x = TRUE, all.y = TRUE)
 eptw <- dcast(ml,Taxon~II_Jahr, value.var="value", fun=sum)# spp level in wide form
 head(ml)
 
+n <- eptw$Taxon
+
+# transpose all but the first column (name)
+t_taxon <- as.data.frame(t(eptw[,-1]))
+colnames(t_taxon) <-n
+t_taxon$myfactor <- factor(row.names(t_taxon))
+
+tax=t_taxon[,1:108]
+
+
+H <- diversity(tax)
+simp <- diversity(tax, "simpson")
+invsimp <- diversity(tax, "inv")
+S <- specnumber(tax) ## rowSums(BCI > 0) does the same...
+J <- H/log(S)
+
 
 
 
@@ -163,45 +181,41 @@ data=ins2#renaming a dataset for the simplicity sake
 data$mean_s=scale(data$mean)+10 #mean temperature scaled
 data$sab=scale(data$x)+10 #abundance scaled
 
-#start building a mixed
-fit <- glm(sab~mean_s+pattern+mean_s*pattern,data=data, family = Gamma)
+#start building a mixed effects model
+fit <- glm(sab~mean_s+pattern+mean_s*pattern,data=data,family = Gamma)
+#alternative approach to a model
+md1<- gls(sab~mean_s+pattern+mean_s*pattern,data=data, correlation=corAR1(), method="ML",na.action = na.omit)
+mod.gls.1.1 <- update(md1, correlation=corARMA(p=1))#best fit
+#we also have tested this models, you can run them, but mod.gls.3 can take several hours to update
+mod.gls.3 <- update(md1, correlation=corARMA(p=3))
+mod.gls.0 <- update(md1, correlation=NULL)
+anova(md1, mod.gls.3, mod.gls.1.1,mod.gls.0) # AR(2) vs AR(1)#Check for minimal AIC criterion
+an2=Anova(mod.gls.1.1)#anova on the best fit model with latitude
+
+
+#dataset of the model residuals
+tdat <- data.frame(predicted=predict(fit), residual = residuals(fit))
+#residuals distribution 
+ggplot(tdat,aes(x=predicted,y=residual)) + geom_point() + geom_hline(yintercept=0, lty=3)
+#residuals histogramm
+ggplot(tdat,aes(x=residual)) + geom_histogram(bins=20, color="black")
+#qqplot
+ggplot(tdat,aes(sample=residual)) + stat_qq() + stat_qq_line()
+
 Anova(fit)
-trp2m$year=trp2m$Year
+
+
 vars1<-merge(data,trp2m, by = "year", all.x = TRUE, all.y = TRUE)
 vars1=vars1[2:206,]
 
 
-vars1$mean_s=scale(vars1$mean)+10
-vars1$lvalue=logit(vars1$value*0.01) #logit relative troph group abundance
-vars1$sval=scale(vars1$lvalue)+10#standartize relative troph group abundance
-
-fit1 <- glm(sval~(mean_s+pattern+mean_s*pattern)*variable,data=vars1, family = Gamma)
-Anova(fit1)
-ptrop_time=ggplot(vars1,aes(x=mean_s,y=value, colour=as.factor(pattern)))+geom_point()+geom_smooth(method="lm",se=FALSE)+facet_wrap(~variable,scales="free")
-
-ggplot(vars1,aes(x=year,y=value, colour=as.factor(variable)))+geom_point()+geom_smooth(se=FALSE)
-trop#p2=p2+ theme(legend.position="top")
-df1=smartbind(taxa1, ept2)
-df1[is.na(df1)] <- 0
-
-
-tax=df1[,4:269]
 
 
 
 
-taxaf=taxaf[,c(1,4:123)]
-
-taxaf=aggregate(taxaf[, 2:121], list(taxaf$II_Jahr),sum)
 
 
-tax=taxaf[,2:121]
 
-H <- diversity(tax)
-simp <- diversity(tax, "simpson")
-invsimp <- diversity(tax, "inv")
-S <- specnumber(tax) ## rowSums(BCI > 0) does the same...
-J <- H/log(S)
 
 
 
