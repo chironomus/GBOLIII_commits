@@ -5,6 +5,8 @@
 #install.packages("factoextra")
 #install.packages("ggfortify")
 #install.packages("ggrepel")
+#install.packages("reshape2")
+#install.packages("plyr")
 library(ggrepel)
 library(DataCombine)
 require(vegan)
@@ -14,6 +16,8 @@ require(car)
 require(fitdistrplus)
 library(factoextra)
 require(ggfortify)
+require(reshape2)
+require(plyr)
 #load the data file witb abundances of aquatic insects from Breitenbach stream, Hesse
 ept1= read.csv("ept_69_2006.csv",sep=";")
 #repleace NA  in empty cells with 0
@@ -258,6 +262,55 @@ plot(ins_NMDS)
 ordiplot(ins_NMDS,type="n")
 orditorp(ins_NMDS,display="species",col="red",air=0.01)
 orditorp(ins_NMDS,display="sites",cex=1.25,air=0.01)
+
+
+
+#time series analysis
+#TIME SERIES lets return get temperature observations from Schlitz, Germany for 1969-2010, and analyze the timeseries
+#TIME SERIES lets return get temperature observations from Schlitz, Germany for 1969-2010, and analyze the timeseries
+temp= read.table("mean_monthl_tempsiteB.txt",sep="\t",header=TRUE)
+require(reshape2)
+tem_melt<- melt(temp, id="Jahr")#melt month into the single column
+tem=tem_melt[order(tem_melt$Jahr,tem_melt$variable),] #order by year and month
+require(plyr)
+tem<-rename(tem,c("Jahr"="Year","variable"="month","value"="TAVG")) #rename variables
+#deal with the data seasonality
+
+aver<-ts(tem$TAVG,start=c(1969,1),frequency=12) #create timeseries, specify start of the series and frequency of measurments
+length(aver)
+#492
+index<-1:492
+492/41
+#12
+time<-index/12
+model<-lm(tem$TAVG~sin(time*2*pi)+cos(time*2*pi))
+plot(time,tem$TAVG, pch=".")
+lines(time, predict(model))
+summary(model)
+plot(model$resid,pch=".")
+acf(model$resid)
+temp<-ts(as.vector(tapply(tem$TAVG,list(tem$month,tem$Year),mean)))  #investigating montly periodicity
+par(mfrow=c(1,1))
+acf(temp)
+
+ytemp<-ts(as.vector(tapply(tem$TAVG,tem$Year,mean))) #are the years also showing periodicty?
+acf(ytemp)
+
+#lets try a "decomposition" function!
+av<-stl(aver,"periodic")#decompose timeseries into trend and seasonal fluctuations
+plot(av)
+require(trend)
+ts=as.data.frame(av$time.series)
+mk.test(ts$trend) #lets check the trend
+require(mblm)
+summary(mblm(TAVG~Year,data=tem)) #lets check the median-based model slope to find out the rate of temperature change per year
+
+#lets transfrom data back into the wide format using "dcast" command
+tem_wide <- dcast(tem, Year~ month, value.var="TAVG", fun=sum)# spp level in wide form
+av$time.series
+
+
+
 
 
 #Standard IRIS dataset example
