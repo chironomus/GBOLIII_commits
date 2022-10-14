@@ -250,81 +250,26 @@ anova.cca(uu, step = 1000, by = "axis")
 ordiplot(uu, scaling = 0, main = "RDA - Scaling 0")
 
 
+#lets do NMDS
+ins_NMDS=metaMDS(t_taxon[,2:109],k=2) 
+ins_NMDS=metaMDS(t_taxon[,2:109],k=2,trymax=100)
+stressplot(ins_NMDS)
+plot(ins_NMDS)
+ordiplot(ins_NMDS,type="n")
+orditorp(ins_NMDS,display="species",col="red",air=0.01)
+orditorp(ins_NMDS,display="sites",cex=1.25,air=0.01)
 
 
+#Standard IRIS dataset example
+df <- iris[1:4]
+pca_res <- prcomp(df, scale. = TRUE)
 
+autoplot(pca_res)
 
+autoplot(pca_res, data = iris, colour = 'Species', label = TRUE, label.size = 3)
 
-h1=data.frame(H)
-h1$year=1969:2010
-div.ab2<-merge(h1,div.ab2, by = "year", all.x = TRUE, all.y = TRUE)
+autoplot(pca_res, data = iris, colour = 'Species', loadings = TRUE)
 
-pdiv.1=ggplot(div.ab2,aes(x=mean,y=H, colour=as.factor(pattern)))+geom_point(size=5)+geom_smooth(method="lm",se=FALSE)
-pdiv.1=pdiv.1+theme_bw()+xlab("mean annual temperature")+ylab("Shannon's diversity, H")+ theme(legend.position="none")
-pdiv.1=pdiv.1+theme(axis.text=element_text(size=14),axis.title=element_text(size=14,face="bold"))+theme(legend.text = element_text(colour="black", size = 20, face = "bold"))
-#grid.arrange(pturn,pdiv.1,ptroph,gx1)
-#grid.arrange(,ptroph,gx1)
-grid.arrange(ptroph,pev,pturn,pdiv.1)
-
-
-
-
-bp2005[is.na(bp2005)] <- 0 
-
-summary(mblm(richness~Group.1,data=df2))
-summary(mblm(div~Group.1,data=df2))
-summary(mblm(simp1~Group.1,data=df2))
-summary(mblm(J~Group.1,data=df2))
-
-
-
-
-#abundance through the all sites
-abtot= read.table("all sites abund.txt",sep="\t",header = TRUE) #reading in river data
-pa=ggplot(abtot,aes(Group.1,x,colour=as.factor(label)))+geom_point()+geom_smooth(span = 0.7,se=FALSE,Lwd=2)+theme_bw()
-pa+xlab("years")+ylab("abundance, specimens")
-
-
-
-plot(Wor_occ$value~Wor_occ$Year,ylim=c(0,4.5),pch=19,xlab="year",ylab="standatized abundance")
-points(Ple_con$value~Ple_con$Year,pch=17,col="red")
-points(Bve$value~Bve$Year,pch=17,col="green")
-points(Aga$value~Aga$Year,pch=19,col="blue")
-
-
-#phen
-
-bnx$year=bnx$Group.1
-div.ab3<-merge(bnx,div.ab2, by = "year", all.x = TRUE, all.y = TRUE)
-div.ab3$s_dur=scale(div.ab3$duration)+10
-div.ab3$S_ct=scale(div.ab3$ct.week)+10
-div.ab3$S_first=scale(div.ab3$week.first)+10
-div.ab3$S_last=scale(div.ab3$week.last)+10
-
-fit4<- glm(s_dur~(mean_s+pattern+mean_s*pattern+sab),data=div.ab3, family = Gamma)
-ggplot(div.ab3,aes(x=mean,y=duration,colour=as.factor(pattern)))+geom_point()+geom_smooth(method="lm")
-fit5<- glm(S_ct~(mean_s+pattern+mean_s*pattern+sab),data=div.ab3, family = Gamma)
-ggplot(div.ab3,aes(x=mean,y=ct.week,colour=as.factor(pattern)))+geom_point()+geom_smooth(method="lm")
-fit6<- glm(S_first~(mean_s+pattern+mean_s*pattern+sab),data=div.ab3, family = Gamma)
-fit7<- glm(S_last~(mean_s+pattern+mean_s*pattern+sab),data=div.ab3, family = Gamma)
-cols <- c("week.first" = "#3366CC", "week.last" = "#33CC99", "ct.week" = "#CC99FF", "duration" = "#666666")
-bnxm <- melt(bnx, id=c("Group.1","year"))
-bnxm=bnxm[! bnxm$variable %in% c("week.first","week.last"), ]
-
-p5x= ggplot(bnxm, aes(Group.1,value,shape=as.factor(variable)))+geom_point(size=6)+geom_smooth(method="lm",se = FALSE,lwd=1)+theme_bw()+ylab("week, number")+xlab("year")+theme(axis.text=element_text(size=14),axis.title=element_text(size=14,face="bold"))+geom_line(lty=2)
-#shift in phenophases over time
-p5x=p5x+ theme(legend.text = element_text(colour="black", size = 20, face = "bold"))
-p5x=p5x+ theme(legend.position="none")
-p5x=p5x
-temp=div.ab1[,c(1,24)]
-temp=aggregate(temp[,2], list(temp$year),mean)#sum of all selected for phenology taxa
-bnxm$year=bnxm$Group.1
-temp$year=temp$Group.1
-bnxm<-merge(bnxm,temp, by = "Group.1", all.x = TRUE, all.y = TRUE)
-bnx1<-merge(bnx,temp, by = "Group.1", all.x = TRUE, all.y = TRUE)
-p6x= ggplot(bnxm, aes(x,value,colour=as.factor(variable)))+geom_point(size=6)+geom_smooth(method="lm",se = FALSE,lwd=3)+theme_bw()+ylab("week, number")+xlab("mean annual temperature, CÂ°")+theme(axis.text=element_text(size=14),axis.title=element_text(size=14,face="bold"))
-#shift in phenophases over time
-p6x=p6x+ theme(legend.text = element_text(colour="black", size = 20, face = "bold"))
-p6x=p6x+ theme(legend.position="top")
-p6x=p6x+scale_color_manual(values = cols)
-grid.arrange(p5x, p6x,ncol=2)
+library(cluster)
+autoplot(clara(iris[-5], 3))
+autoplot(fanny(iris[-5], 3), frame = TRUE)
