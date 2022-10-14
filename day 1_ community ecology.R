@@ -4,6 +4,8 @@
 library(DataCombine)
 require(vegan)
 library(gtools)
+require(nlme)
+require(car)
 #load the data file witb abundances of aquatic insects from Breitenbach stream, Hesse
 ept1= read.csv("ept_69_2006.csv",sep=";")
 #repleace NA  in empty cells with 0
@@ -73,12 +75,15 @@ a2=a2[,2:3]#remove repeating column with spp names
 eptx1<-merge(eptx1,a2, by = "Group.2", all.x = TRUE, all.y = TRUE)
 #aggregate abundance per year by order
 eptx12=aggregate(eptx1[, 3], list(eptx1$Group.1,eptx1$vec),sum)
+#plot abundance of the three orders of aquatic insects
 ggplot(eptx12,aes(x=Group.1,y=x,colour=as.factor(Group.2)))+geom_point()+geom_smooth(method="lm")+xlab("year")+ylab("specimens number")+theme_bw()
+############################
+#do the same procedures for post 2006 data from breitenbach
 
 
 #ept_wide1$rich=specnumber
 
-ept2= read.csv("eptx2.csv",sep=";")
+ept2= read.csv("eptx2.csv",sep=";") #load post 2006 EPT data
 
 ept2[is.na(ept2)] <- 0 
 
@@ -124,50 +129,41 @@ taxaf<- subset(taxaf, II_Jahr != "0")
 
 ept2m <- melt(taxaf, id=c("II_Jahr","II_Monat","II_Tag"))
 
-sp= read.table("spp.txt",sep="\t",header = TRUE) #reading in river data
+sp= read.table("spp.txt",sep="\t",header = TRUE) #reading full sp names
+#create a table for each taxon abundance for years 1969-2010
 ml<-merge(sp,ept2m, by = "variable", all.x = TRUE, all.y = TRUE)
-
+#cast taxa abundance in wide form
 eptw <- dcast(ml,Taxon~II_Jahr, value.var="value", fun=sum)# spp level in wide form
-#eptw=eptw[,1:109]
-write.table(eptw, file = "eptw.csv")
-
-mtr= read.table("metr.txt",sep="\t",header = TRUE) #reading in river data
-troph=mtr[,c(1,46,49:50,52:53)]
-
-trp2m <- melt(troph, id=c("Year"))
-######################
+head(ml)
 
 
 
 
+
+
+#Mixed effects models in ecology
+########################################################
+#load data on the discharge of water in the stream
 dis= read.table("discharge.txt",sep="\t",header = TRUE) #reading in river data
 dis$year=dis$Jahr
-
-
-
+#load data on the water temprature at a sampling site
 temp= read.table("temperature_siteB.txt",sep="\t",header=TRUE)
+#merge temperature and discharge into a single dataframe
 vars<-merge(temp,dis, by = "year", all.x = TRUE, all.y = TRUE)
+#read dataset on general abundance
+ins=read.table("all sites abund.txt",sep="\t",header = TRUE)
+#aggregate insect abundance by year
+aggregate(ins$x, by=list(Category=ins$Group.1), FUN=sum)
+ins$year=ins$Group.1 #rename a column
+#merge into one dataset insect abundance and environmental variables
+ins2<-merge(ins,vars, by = "year", all.x = TRUE, all.y = TRUE)
 
+data=ins2#renaming a dataset for the simplicity sake
+#scale the variables for the use in the mixed efects models
+data$mean_s=scale(data$mean)+10 #mean temperature scaled
+data$sab=scale(data$x)+10 #abundance scaled
 
-ins$year=ins$Group.1
-ins1=aggregate(ins[,3], list(ins$year),sum)
-ins1$year=ins1$Group.1
-ins2<-merge(ins1,vars, by = "year", all.x = TRUE, all.y = TRUE)
-#ins2<-merge(ins2,dis, by = "Group.1", all.x = TRUE, all.y = TRUE)
-#ins2$discharge=ins2$x.y
-#DataSlid1 <- slide(ins2, Var = "mean", slideBy = -1)
-#DataSlid2<- slide(DataSlid1, Var = "discharge", slideBy = -1)
-
-##DataSlid2$lag_mean=DataSlid2$`mean-1`
-#DataSlid2$lag_dis=DataSlid2$`discharge-1`
-attach(ins2)#
-data=ins2
-data$mean_s=scale(data$mean)+10
-
-data$sab=scale(data$x)+10
-#attach(data)
-require(nlme)
-require(car)
+#start building a mixed
 fit <- glm(sab~mean_s+pattern+mean_s*pattern,data=data, family = Gamma)
 Anova(fit)
 trp2m$year=trp2m$Year
