@@ -54,20 +54,26 @@ output <-data.frame( Bae_ver=apply(taxa[1:2], 1, sum),Bae_roh=apply(taxa[3:4], 1
 date=ept1[,1:3]
 #bind toogether date and taxa dataframes
 taxax=cbind(date,output)
-#
+#melt the dataset into a long form
 eptmelt <- melt(taxax, id=c("II_Jahr","II_Monat","II_Tag"))
-
+#get abundance of each species per year
 eptx1=aggregate(eptmelt[, 5], list(eptmelt$II_Jahr,eptmelt$ variable),sum)
-eptx11=aggregate(eptmelt[, 5], list(eptmelt$II_Jahr),sum)
+#cast the dataset back into the wide form for community analysis
 ept_wide1 <- dcast(eptx1,Group.1~Group.2, value.var="x", fun=sum)# spp level in wide form
+#extract the names of all species
 a1=unique(eptx1$Group.2)
-vec=c(rep("Eph",34),rep("Ple",52),rep("Tri",156))
+#assign the order identity to each species, Eph - Ephemeroptera, Ple -Plecoptera, Tri -ca
+vec=c(rep("Eph",16),rep("Ple",26),rep("Tri",78))
+#add order identity to the dataset
 a1=data.frame(a1)
-a2=cbind(a1,vec)
-a2$Group.2=a2$a1
+a2=cbind(a1,vec)#bind vector with sp names to order names vector
+a2$Group.2=a2$a1 #rename species column so it can be used as a comon variable to merge dataframe
+#with orders id and main dataframe with spp abundance
+a2=a2[,2:3]#remove repeating column with spp names
 eptx1<-merge(eptx1,a2, by = "Group.2", all.x = TRUE, all.y = TRUE)
+#aggregate abundance per year by order
 eptx12=aggregate(eptx1[, 3], list(eptx1$Group.1,eptx1$vec),sum)
-ggplot(eptx12,aes(x=Group.1,y=x,colour=as.factor(Group.2)))+geom_point()+geom_smooth(method="lm")
+ggplot(eptx12,aes(x=Group.1,y=x,colour=as.factor(Group.2)))+geom_point()+geom_smooth(method="lm")+xlab("year")+ylab("specimens number")+theme_bw()
 
 
 #ept_wide1$rich=specnumber
