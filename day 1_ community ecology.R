@@ -7,6 +7,20 @@
 #install.packages("ggrepel")
 #install.packages("reshape2")
 #install.packages("plyr")
+#install.packages("BiodiversityR")
+#install.packages("reshape")
+#install.packages("iNEXT")
+#install.packages("SpadeR")
+#install.packages("SPECIES")
+#install.packages("fossil")
+require(BiodiversityR)
+require(vegan)
+require(dplyr)
+require(ggplot2)
+require(reshape2)
+require(iNEXT)
+require(SpadeR)
+require(SPECIES)
 library(ggrepel)
 library(DataCombine)
 require(vegan)
@@ -18,6 +32,7 @@ library(factoextra)
 require(ggfortify)
 require(reshape2)
 require(plyr)
+require(fossil)
 #load the data file witb abundances of aquatic insects from Breitenbach stream, Hesse
 ept1= read.csv("ept_69_2006.csv",sep=";")
 #repleace NA  in empty cells with 0
@@ -309,7 +324,19 @@ summary(mblm(TAVG~Year,data=tem)) #lets check the median-based model slope to fi
 tem_wide <- dcast(tem, Year~ month, value.var="TAVG", fun=sum)# spp level in wide form
 av$time.series
 
+#rarefaction curves and chao estimation for assesment of the missing proportion of the alpha 
+#diversity in the samples
+tax1=t_taxon[,2:109]
+Specimens_BIN=colSums(tax1)
+ChaoSpecies(Specimens_BIN,"abundance",k=10,conf=0.95)#Chao species estimator here done for BIN's
 
+Diversity(Specimens_BIN,"abundance",q=c(0,0.5,1,1.5,2)) #Hill estimator fro BIN's here
+
+chironomids=cbind(Specimens,BIN_n)
+chironomids=as.data.frame(chironomids)
+curve_chr = specaccum(tax1, method = "random", 
+                      permutations = 100)
+plot(curve_chr)
 
 
 
