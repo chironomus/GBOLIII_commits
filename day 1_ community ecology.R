@@ -138,22 +138,6 @@ ml<-merge(sp,ept2m, by = "variable", all.x = TRUE, all.y = TRUE)
 eptw <- dcast(ml,Taxon~II_Jahr, value.var="value", fun=sum)# spp level in wide form
 head(ml)
 
-n <- eptw$Taxon
-
-# transpose all but the first column (name)
-t_taxon <- as.data.frame(t(eptw[,-1]))
-colnames(t_taxon) <-n
-t_taxon$myfactor <- factor(row.names(t_taxon))
-
-tax=t_taxon[,1:108]
-
-
-H <- diversity(tax)
-simp <- diversity(tax, "simpson")
-invsimp <- diversity(tax, "inv")
-S <- specnumber(tax) ## rowSums(BCI > 0) does the same...
-J <- H/log(S)
-
 
 
 
@@ -204,166 +188,30 @@ ggplot(tdat,aes(sample=residual)) + stat_qq() + stat_qq_line()
 
 Anova(fit)
 
-
-vars1<-merge(data,trp2m, by = "year", all.x = TRUE, all.y = TRUE)
-vars1=vars1[2:206,]
+#multivariate community analysis
 
 
+n <- eptw$Taxon
 
+# transpose all but the first column (name)
+t_taxon <- as.data.frame(t(eptw[,-1]))
+colnames(t_taxon) <-n
+t_taxon$myfactor <- factor(row.names(t_taxon))
 
+tax=t_taxon[,1:108]
 
+#diversity indices
+H <- diversity(tax)
+simp <- diversity(tax, "simpson")
+invsimp <- diversity(tax, "inv")
+S <- specnumber(tax) ## rowSums(BCI > 0) does the same...
+J <- H/log(S)
+#combine taxon matrix with environmental variables
+t_taxon=t_taxon[1:42,]
+t_taxon$year=vars$year
+t_taxon<-merge(t_taxon,vars, by = "year", all.x = TRUE, all.y = TRUE)
+tax=t_taxon[,1:108]
 
-
-
-
-
-
-
-taxaf$richness=S
-taxaf$div=H
-taxaf$simp1=simp
-taxaf$evennes=J
-
-div=taxaf[,c(1,122:125)]
-
-ab=aggregate(ept2m[, 5], list(ept2m$II_Jahr),sum)
-ab$II_Jahr=ab$Group.1
-div$II_Jahr=div$Group.1
-div.ab<-merge(div,ab, by = "II_Jahr", all.x = TRUE, all.y = TRUE)
-div.ab$year=div.ab$II_Jahr
-div.ab1<-merge(div.ab,vars1, by = "year", all.x = TRUE, all.y = TRUE)
-
-div.ab1$s_mean=scale(div.ab1$mean)+10
-div.ab1$S_rich=scale(div.ab1$richness)+10
-div.ab1$S_div=scale(div.ab1$div)+10
-div.ab1$S_simp=scale(div.ab1$simp1)+10
-div.ab1$S_ev=scale(div.ab1$evennes)+10
-div.ab1$S_troph=scale(div.ab1$value)+10
-attach(div.ab1)
-fit2 <- glm(S_div~(mean_s+pattern+mean_s*pattern)*variable,data=div.ab1, family = Gamma)
-fit2.1 <- glm(S_div~mean_s+pattern+mean_s*pattern,data=div.ab1, family = Gamma)
-fit2.2 <- glm(S_rich~mean_s+pattern+mean_s*pattern,data=div.ab1, family = Gamma)
-dis$Year=dis$Jahr
-trp<-merge(dis,troph, by = "Year", all.x = TRUE, all.y = TRUE)
-ab1=aggregate(ept2m[, 5], list(ept2m$II_Jahr,ept2m$variable),sum)
-
-
-
-
-attach(data)
-require(nlme)
-require(car)
-fit <- glm(sab~mean_s+pattern+mean_s*pattern, family = Gamma)
-
-require(codyn)
-total.res <- turnover(df=ab1,time.var = "Group.1",species.var = "Group.2",abundance.var = "x",replicate.var=NA)
-rate=rate_change_interval(ab1,time.var = "Group.1", species.var = "Group.2", abundance.var = "x",replicate.var =NA)
-
-
-total.ap <- turnover(df=ab1,time.var = "Group.1", species.var = "Group.2",abundance.var = "x",replicate.var=NA,metric="appearance")
-
-total.ds <- turnover(df=ab1,time.var = "Group.1", species.var = "Group.2",abundance.var = "x",replicate.var=NA,metric="disappearance")
-total.res$cat=rep("total",41)
-
-total.ap$cat=rep("appearence",41)
-total.ds$cat=rep("disappearence",41)
-
-total.res$year=total.res$Group.1
-total.ap$year=total.ap$Group.1
-total.ds$year=total.ds$Group.1
-
-
-total.res$turnover=total.res$total
-total.res=total.res[,2:5]
-
-total.ap$turnover=total.ap$appearance
-total.ap=total.ap[,2:5]
-
-total.ds$turnover=total.ds$disappearance 
-total.ds=total.ds[,2:5]
-
-tot.tr=rbind(total.res,total.ap)
-tottr=rbind(tot.tr,total.ds)
-cols <- c("appearence" = "#CCCC66", "disappearence" = "#333333", "total" = "#9933FF")
-turn=ggplot(tottr,aes(x=year,y=turnover,colour=as.factor(cat)))+geom_point(size=3)+geom_smooth(method="lm",se=FALSE)
-turn=turn+theme_bw()+xlab("years")+ylab("turnover")+ theme(legend.position="none")
-turn=turn+theme(axis.text=element_text(size=14),axis.title=element_text(size=14,face="bold"))+theme(legend.text = element_text(colour="black", size = 20, face = "bold"))
-turn=turn+scale_color_manual(values = cols)
-
-
-
-
-
-div.ab2<-merge(div.ab1,total.res, by = "year", all.x = TRUE, all.y = TRUE)
-fit3<- glm(total~mean_s+pattern+mean_s*pattern,data=div.ab2, family = Gamma)
-
-trp2m$year=trp2m$Year
-tropm<-merge(trp2m,dis, by = "year", all.x = TRUE, all.y = TRUE)
-pdis=ggplot(vars1,aes(x=year,y=mean.disch))+geom_point(aes(color = factor(pattern),size=5))+geom_line(lty=2) #discharge plot
-pdis=pdis+theme_bw()+xlab("years")+ylab("mean annual discharge, liters/min-1")
-pdis=pdis+theme(axis.text=element_text(size=14),axis.title=element_text(size=14,face="bold"))+theme(legend.text = element_text(colour="black", size = 20, face = "bold"))+ theme(legend.position="none")
-
-
-ptemp=ggplot(vars1,aes(x=year,y=mean))+geom_point(aes(size=5))+geom_smooth(method="lm",se=FALSE)+geom_line(lty=2) #temperature plot
-ptemp=ptemp+theme_bw()+xlab("years")+ylab("mean annual temperature, Â°C")+ theme(legend.position="none")
-ptemp=ptemp+theme(axis.text=element_text(size=14),axis.title=element_text(size=14,face="bold"))+theme(legend.text = element_text(colour="black", size = 20, face = "bold"))
-
-
-pab=ggplot(data,aes(x=year,y=x))+geom_point(aes(size=5))+geom_smooth(method="lm",se=FALSE)+geom_line(lty=2) #abundance vs yrs plot
-pab=pab+theme_bw()+xlab("years")+ylab("summ of animal abundance, specimens")+ theme(legend.position="none")
-pab=pab+theme(axis.text=element_text(size=14),axis.title=element_text(size=14,face="bold"))+theme(legend.text = element_text(colour="black", size = 20, face = "bold"))
-
-
-pabt=ggplot(data,aes(x=mean,y=x))+geom_point(aes(size=5))+geom_smooth(method="lm",se=FALSE)+geom_line(lty=2) #abundance vs temp plot
-pabt=pabt+theme_bw()+xlab("mean annual temperature, Â°C")+ylab("summ of animal abundance, specimens")+ theme(legend.position="none")
-pabt=pabt+theme(axis.text=element_text(size=14),axis.title=element_text(size=14,face="bold"))+theme(legend.text = element_text(colour="black", size = 20, face = "bold"))
-
-grid.arrange(ptemp,pdis,pab,pabt)
-
-#######################################
-par(mfrow=c(2,2))
-####################################################
-pdiv=ggplot(taxaf,aes(x=Group.1,y=div))+geom_point(aes(size=5))+geom_smooth(method="lm",se=FALSE)+geom_line(lty=2) #temperature plot
-pdiv=pdiv+theme_bw()+xlab("years")+ylab("Shannon's diversity, H")+ theme(legend.position="none")
-pdiv=pdiv+theme(axis.text=element_text(size=14),axis.title=element_text(size=14,face="bold"))+theme(legend.text = element_text(colour="black", size = 20, face = "bold"))
-
-
-prich=ggplot(taxaf,aes(x=Group.1,y=richness))+geom_point(aes(size=5))+geom_smooth(method="lm",se=FALSE)+geom_line(lty=2) #temperature plot
-prich=prich+theme_bw()+xlab("years")+ylab("Species richness")+ theme(legend.position="none")
-prich=prich+theme(axis.text=element_text(size=14),axis.title=element_text(size=14,face="bold"))+theme(legend.text = element_text(colour="black", size = 20, face = "bold"))
-
-
-pev=ggplot(taxaf,aes(x=Group.1,y=evennes))+geom_point(aes(size=5))+geom_smooth(method="lm",se=FALSE)+geom_line(lty=2) #temperature plot
-pev=pev+theme_bw()+xlab("years")+ylab("Pielou evennes")+ theme(legend.position="none")
-pev=pev+theme(axis.text=element_text(size=14),axis.title=element_text(size=14,face="bold"))+theme(legend.text = element_text(colour="black", size = 20, face = "bold"))
-
-grid.arrange(p5x,prich,pdiv,turn)
-taxaf[is.na(taxaf)] <- 0#
-summary(mblm(richness~Group.1,data=taxaf))
-summary(mblm(div~Group.1,data=taxaf))
-summary(mblm(simp1~Group.1,data=taxaf))
-summary(mblm(J~Group.1,data=taxaf))
-
-
-
-pturn=ggplot(div.ab2,aes(x=mean,y=turnover, colour=as.factor(pattern)))+geom_point(size=5)+geom_smooth(method="lm",se=FALSE)
-pturn=pturn+theme_bw()+xlab("mean annual temperature, Â°C")+ylab("turnover")+ theme(legend.position="none")
-pturn=pturn+theme(axis.text=element_text(size=14),axis.title=element_text(size=14,face="bold"))+theme(legend.text = element_text(colour="black", size = 20, face = "bold"))
-
-cols <- c("X......Grazers.and.scrapers" = "#009999", "X......Shredders" = "#330099", "X......Gatherers.Collectors" = "#666666", "X......Passive.filter.feeders" = "#CC6600","X......Predators"="#CC3399")
-ptroph=ggplot(div.ab2,aes(x=year,y=value, colour=as.factor(variable)))+geom_point(size=5)+geom_smooth(method="lm",se=FALSE)
-ptroph=ptroph+theme_bw()+xlab("year")+ylab("relative abundance, %")+ theme(legend.position="none")
-ptroph=ptroph+theme(axis.text=element_text(size=14),axis.title=element_text(size=14,face="bold"))+theme(legend.text = element_text(colour="black", size = 20, face = "bold"))+scale_fill_discrete(name="variable")
-ptroph=ptroph+scale_color_manual(values = cols)
-
-
-
-#px1=ggplot(d7, aes(x=Group.1, y=x, colour=as.factor(Group.2)))+geom_point(aes(size=5))+geom_smooth(method="lm",se = FALSE,lwd=3)+theme_bw()+ylab("number of specimens")+xlab("years")+scale_fill_discrete(name="phenophase shift")+ylim(0, 11000)+theme(axis.text=element_text(size=20),axis.title=element_text(size=20,face="bold"))
-
-#px1=px1+ theme(legend.text = element_text(colour="black", size = 20, face = "bold"))
-#px1=px1+ theme(legend.position="top")
-#px1=px1+scale_color_manual(values = cols)
-#df1=smartbind(taxa1, ept2)
 
 
 
