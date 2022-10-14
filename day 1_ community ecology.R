@@ -2,12 +2,18 @@
 #install.packages("vegan")
 #install.packages("gtools")
 #install.packages("fitdistrplus")
+#install.packages("factoextra")
+#install.packages("ggfortify")
+#install.packages("ggrepel")
+library(ggrepel)
 library(DataCombine)
 require(vegan)
 library(gtools)
 require(nlme)
 require(car)
 require(fitdistrplus)
+library(factoextra)
+require(ggfortify)
 #load the data file witb abundances of aquatic insects from Breitenbach stream, Hesse
 ept1= read.csv("ept_69_2006.csv",sep=";")
 #repleace NA  in empty cells with 0
@@ -210,7 +216,40 @@ J <- H/log(S)
 t_taxon=t_taxon[1:42,]
 t_taxon$year=vars$year
 t_taxon<-merge(t_taxon,vars, by = "year", all.x = TRUE, all.y = TRUE)
-tax=t_taxon[,1:108]
+#simple PCA on taxon matrix
+ins.pca <- prcomp(t_taxon[,2:109])
+
+autoplot(ins.pca)
+#ind <-  get_pca_ind(ins.pca)
+#summary(ins.pca)
+#head(ind$coord)
+#coord=as.data.frame(ind$coord,rownames=T)
+#contr=as.data.frame(ind$contrib,rownames=T)
+#contr1=as.data.frame(ind$contrib,rownames=T)
+#cont=contr[,1:4]#first 4 PC encompasing 99% of variation, lets extract them
+#x4=coord[,1:4]
+fc=t_taxon[,c(142, 188)]#Read explanatory variable data
+sp=t_taxon[,2:109]#Read response variable data
+spp=decostand(sp,method = "hellinger")#Convert response variables
+spp[is.na(spp)] <- 0
+
+fcc=log10(fc)#Converting explanatory variables
+fcc[is.na(fcc)] <- 0
+
+uu=rda(spp~.,fcc)#RDA Analysis
+ii=summary(uu)  #View analysis results
+sp=as.data.frame(ii$species[,1:2])*2#Depending on the drawing result, the drawing data can be enlarged or reduced to a certain extent, as follows
+st=as.data.frame(ii$sites[,1:2])
+yz=as.data.frame(ii$biplot[,1:2])
+grp=as.data.frame(c(rep("a",4),rep("b",4),rep("c",4),rep("d",4)))#Grouping by Square Type
+colnames(grp)="group"
+anova.cca(uu, step = 1000)
+sum_ii=anova.cca(uu, step = 1000, by = "term")
+anova.cca(uu, step = 1000, by = "axis")
+#plot RDA
+ordiplot(uu, scaling = 0, main = "RDA - Scaling 0")
+
+
 
 
 
