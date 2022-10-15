@@ -48,4 +48,36 @@ Diversity(Specimens_BIN,"abundance",q=c(0,0.5,1,1.5,2)) #Hill estimator fro BIN'
 curve_chr = specaccum(All_chir, method = "random", 
                       permutations = 100)
 
+#plot rarefaction curve
+sites=curve_chr$sites #extract sites as vector
+richness=curve_chr$richness #extract spp richness as vector
+sd=curve_chr$sd
+curve1=cbind(sites, richness,sd)
+curve1=as.data.frame(curve1)
 plot(curve_chr)
+
+plot(curve_chr,ci.type="poly", col="blue", lwd=2, ci.lty=0, ci.col="lightblue", 
+     main = "Default: Prettier CI")
+
+
+#do it with iNext
+
+chiro=as.list(setNames(curve_chr$sites,curve_chr$richness))
+All_chir1 <- iNEXT(All_chir, q=0, datatype="abundance")
+
+out <- iNEXT(SBin, q=0, datatype="abundance")
+ggiNEXT(out, type=1)
+
+
+# Sample-size-based R/E curves, separating by "site""
+ggiNEXT(out, type=1, facet.var="site")
+
+#and with raremax in vegan
+
+S <- specnumber(chr) # observed number of species/BIN's
+(raremax <- min(rowSums(chr[,2:297])))
+Srare <- rarefy(chr[,2:297], raremax)
+plot(S, Srare, xlab = "Observed No. of Species", ylab = "Rarefied No. of Species")
+abline(0, 1)
+rarecurve(BCI, step = 20, sample = raremax, col = "blue", cex = 0.6)
+
