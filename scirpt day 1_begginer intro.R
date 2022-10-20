@@ -62,6 +62,10 @@ n=t(m)#transpone matrix
 species="Troglocladius hajdi"
 #nov several factorial objects in a vector
 taxa=c("Pantera pardus","Canis familaris", "Sus scrofa", "Capreolus capreolus ","Procyon lotor","Castor amicus","Felis sylvestris")
+
+################################################################################
+#3 Functions and repeated commands
+################################################################################
 #folowing dataset based on Rubner, 1883
 mass=as.numeric(c(31.2,24.0,19.8,18.2,9.61,6.5,3.19)) #kg
 Svr=as.numeric(c(344,366,379,421,550,573,726))   #S/V_rat/sm2/killo
@@ -97,10 +101,6 @@ require(reshape)
 require(reshape2)
 mydata_narrow=melt(data,id=c("taxa","trophic"))
 mydata_wide1 <-cast(mydata_narrow, taxa+value~variable)
-
-################################################################################
-#3 Functions and repeated commands
-################################################################################
 
 raz= read.table("raz.txt",sep="\t",header=TRUE)
 require(reshape2)
