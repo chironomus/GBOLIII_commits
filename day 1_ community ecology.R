@@ -247,13 +247,13 @@ autoplot(ins.pca)
 #contr1=as.data.frame(ind$contrib,rownames=T)
 #cont=contr[,1:4]#first 4 PC encompasing 99% of variation, lets extract them
 #x4=coord[,1:4]
-fc=t_taxon[,c(142, 188)]#Read explanatory variable data
+fcc=t_taxon[,c(142, 124)]#Read explanatory variable data
 sp=t_taxon[,2:109]#Read response variable data
 spp=decostand(sp,method = "hellinger")#Convert response variables
 spp[is.na(spp)] <- 0
+fcc[is.na(fcc)]<- 0
 
-fcc=log10(fc)#Converting explanatory variables
-fcc[is.na(fcc)] <- 0
+
 
 uu=rda(spp~.,fcc)#RDA Analysis
 ii=summary(uu)  #View analysis results
